@@ -10,31 +10,22 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var DB *sql.DB
-
-func ConnectDB() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
+// Connect opens and returns a *sql.DB. Caller is responsible for closing.
+func Connect() (*sql.DB, error) {
+	_ = godotenv.Load() // non-fatal if missing
 	dbUser := os.Getenv("DB_USER")
 	dbPass := os.Getenv("DB_PASS")
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 	dbName := os.Getenv("DB_NAME")
-
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		dbUser, dbPass, dbHost, dbPort, dbName)
-
-	DB, err = sql.Open("mysql", dsn)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", dbUser, dbPass, dbHost, dbPort, dbName)
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Fatal("Error connecting to the database: ", err)
+		return nil, fmt.Errorf("open db: %w", err)
 	}
-
-	if err = DB.Ping(); err != nil {
-		log.Fatal("Error pinging the database: ", err)
+	if err = db.Ping(); err != nil {
+		return nil, fmt.Errorf("ping db: %w", err)
 	}
-
-	fmt.Println("Successfully connected to the database")
+	log.Println("database connected")
+	return db, nil
 }
